@@ -300,8 +300,53 @@ class MemorySystem:
             daily_file = os.path.join(config.MEMORY_DIR, f"{date.isoformat()}.md")
             if os.path.exists(daily_file):
                 with open(daily_file, "r", encoding="utf-8") as f:
-                    entries.append(f"## {date.isoformat()}\n{f.read()[-2000:]}")
+                    content = f.read()
+                    # 截断时按行边界，避免切断多字节中文
+                    lines = content.split("\n")
+                    truncated = []
+                    char_count = 0
+                    for line in reversed(lines):
+                        if char_count + len(line) > 2000:
+                            break
+                        truncated.append(line)
+                        char_count += len(line)
+                    truncated.reverse()
+                    entries.append(f"## {date.isoformat()}\n" + "\n".join(truncated))
         return "\n\n".join(entries) if entries else "暂无近期记录。"
+
+    def search_memory(self, keyword: str, max_results: int = 10) -> list[dict]:
+        """在所有记忆文件中搜索关键词（简单全文匹配）"""
+        keyword_lower = keyword.lower()
+        results = []
+        memory_files = self.list_memory_files()
+        # 也搜索 MEMORY.md
+        memory_md = os.path.join(config.WORKSPACE, "MEMORY.md")
+        if os.path.exists(memory_md):
+            memory_files.insert(0, memory_md)
+
+        for fpath in memory_files:
+            try:
+                with open(fpath, "r", encoding="utf-8") as f:
+                    content = f.read()
+                if keyword_lower not in content.lower():
+                    continue
+                matches = []
+                for i, line in enumerate(content.split("\n"), 1):
+                    if keyword_lower in line.lower():
+                        matches.append({"line": i, "text": line.strip()[:120]})
+                        if len(matches) >= 3:
+                            break
+                results.append({
+                    "file": os.path.basename(fpath),
+                    "path": fpath,
+                    "matches": matches,
+                    "total_matches": sum(1 for line in content.split("\n") if keyword_lower in line.lower()),
+                })
+                if len(results) >= max_results:
+                    break
+            except Exception:
+                continue
+        return results
 
     def list_memory_files(self) -> list[str]:
         """列出所有记忆文件"""

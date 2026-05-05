@@ -40,11 +40,14 @@ class SubAgent:
     """
 
     def __init__(self, task: str, allowed_tools: List[str],
-                 system_prompt: str = None, parent_session_id: str = ""):
+                 system_prompt: str = None, parent_session_id: str = "",
+                 depth: int = 0, max_depth: int = 2):
         self.task = task
         self.allowed_tools = allowed_tools
         self.parent_session_id = parent_session_id
         self.tool_log: List[dict] = []
+        self.depth = depth
+        self.max_depth = max_depth
 
         # 构建隔离的系统提示
         base_prompt = system_prompt or f"你是一个专项子Agent，任务：{task}"
@@ -68,6 +71,14 @@ class SubAgent:
 
         返回 SubAgentResult，output 已用 [EXTERNAL] 标签包裹。
         """
+        # 递归深度保护
+        if self.depth >= self.max_depth:
+            return SubAgentResult(
+                success=False, output="",
+                elapsed_ms=0,
+                error=f"子Agent递归深度超限 (depth={self.depth}, max={self.max_depth})",
+            )
+
         start = time.time()
         self.messages.append({"role": "user", "content": self.task})
 

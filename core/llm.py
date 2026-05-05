@@ -105,8 +105,9 @@ async def _chat_ollama(messages: list[dict], tools: list[dict] = None,
     return await _execute_chat(client, kwargs, timeout or config.OLLAMA_TIMEOUT)
 
 
-async def _execute_chat(client: AsyncOpenAI, kwargs: dict, timeout: float) -> dict:
-    """执行 LLM 调用（通用逻辑）"""
+async def _execute_chat(client: AsyncOpenAI, kwargs: dict, timeout: float,
+                        max_retries: int = 3) -> dict:
+    """执行 LLM 调用（通用逻辑，带指数退避重试）"""
     # [DEBUG] 打印工具调用信息
     tools_list = kwargs.get('tools', [])
     model = kwargs.get('model', '?')
@@ -115,15 +116,32 @@ async def _execute_chat(client: AsyncOpenAI, kwargs: dict, timeout: float) -> di
         tool_names = [t['function']['name'] for t in tools_list[:8]]
         print(f"[LLM] tools_preview: {tool_names}...")
 
-    try:
-        resp = await asyncio.wait_for(
-            client.chat.completions.create(**kwargs),
-            timeout=timeout
-        )
-    except asyncio.TimeoutError:
-        return {"role": "assistant", "content": "⏱️ LLM 响应超时，请稍后重试或缩短请求。", "_timeout": True}
-    except Exception as e:
-        return {"role": "assistant", "content": f"❌ LLM 调用失败: {str(e)}", "_error": True}
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            resp = await asyncio.wait_for(
+                client.chat.completions.create(**kwargs),
+                timeout=timeout
+            )
+        except asyncio.TimeoutError:
+            last_error = "timeout"
+            if attempt < max_retries - 1:
+                wait = 2 ** attempt
+                print(f"[LLM] 超时，{wait}s 后重试 ({attempt+1}/{max_retries})")
+                await asyncio.sleep(wait)
+                continue
+            return {"role": "assistant", "content": "⏱️ LLM 响应超时，请稍后重试或缩短请求。", "_timeout": True}
+        except Exception as e:
+            last_error = str(e)
+            # 429 限流或 5xx 服务端错误时重试
+            is_retryable = hasattr(e, 'status_code') and (e.status_code == 429 or e.status_code >= 500)
+            if is_retryable and attempt < max_retries - 1:
+                wait = 2 ** attempt
+                print(f"[LLM] 错误 {e.status_code}，{wait}s 后重试 ({attempt+1}/{max_retries})")
+                await asyncio.sleep(wait)
+                continue
+            return {"role": "assistant", "content": f"❌ LLM 调用失败: {str(e)}", "_error": True}
+        break
 
     msg = resp.choices[0].message
     result = {"role": "assistant", "content": msg.content or ""}

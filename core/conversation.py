@@ -67,7 +67,8 @@ class _TaijiResult:
 class Conversation:
     """一次对话会话（v1.3 async）"""
 
-    def __init__(self, session_id: str = "default", restore: bool = True):
+    def __init__(self, session_id: str = "default", restore: bool = True,
+                 on_confirm: Optional[Callable[[str], bool]] = None):
         self.session_id = session_id
         self.memory = MemorySystem()
         self.messages: list[dict] = []
@@ -76,6 +77,7 @@ class Conversation:
         self._browser_session = None
         self._cancel_event = asyncio.Event()
         self._token_usage = []
+        self._on_confirm = on_confirm  # 确认回调，默认 None 时危险操作会被拒绝
 
         if restore and self._session_file_exists():
             self._load_session()
@@ -312,6 +314,8 @@ class Conversation:
 
     async def _execute_tool(self, func_name: str, args: dict,
                             on_confirm: Optional[Callable[[str], bool]] = None) -> str:
+        # 使用实例级回调作为兜底
+        confirm_fn = on_confirm or self._on_confirm
         start_time = time.time()
         loop = asyncio.get_running_loop()
 
@@ -327,12 +331,19 @@ class Conversation:
             try:
                 from security.filesystem_guard import guard
                 gui_check = guard.check_gui_operation(func_name, args)
-                if gui_check.get("needs_confirm") and on_confirm:
-                    confirmed = on_confirm(gui_check["confirm_message"])
-                    if not confirmed:
+                if gui_check.get("needs_confirm"):
+                    if confirm_fn and callable(confirm_fn):
+                        confirmed = confirm_fn(gui_check["confirm_message"])
+                        if not confirmed:
+                            return json.dumps({
+                                "cancelled": True,
+                                "message": "用户拒绝了桌面操作。"
+                            }, ensure_ascii=False)
+                    else:
+                        # 无确认回调时，默认拒绝危险操作
                         return json.dumps({
-                            "cancelled": True,
-                            "message": "用户拒绝了桌面操作。"
+                            "blocked": True,
+                            "message": f"需要用户确认但未配置确认回调: {gui_check['confirm_message']}"
                         }, ensure_ascii=False)
             except ImportError:
                 pass
@@ -396,8 +407,8 @@ class Conversation:
             parsed = json.loads(result_raw)
             if isinstance(parsed, dict) and parsed.get("needs_confirm"):
                 cmd = parsed.get("command", "")
-                if on_confirm:
-                    confirmed = on_confirm(cmd)
+                if confirm_fn and callable(confirm_fn):
+                    confirmed = confirm_fn(cmd)
                     if confirmed:
                         result_raw = await asyncio.wait_for(loop.run_in_executor(None, registry.execute, "run_command_confirmed", {"command": cmd}), timeout=config.TOOL_TIMEOUT)
                     else:

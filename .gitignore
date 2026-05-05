@@ -4,3 +4,9 @@ __pycache__/
 *.egg-info/
 .env
 venv/
+rollback_data/
+*.db
+*.sqlite
+*.log
+.DS_Store
+Thumbs.db

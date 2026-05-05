@@ -255,9 +255,26 @@ def screenshot(region: str = None, with_grid: bool = False) -> str:
 
         buf = io.BytesIO()
         pil_img.save(buf, format="JPEG", quality=60, optimize=True)
-        b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+        raw_bytes = buf.getvalue()
+        b64 = base64.b64encode(raw_bytes).decode("utf-8")
 
-        result_info["base64"] = b64
+        # 如果 base64 超过 200KB，保存到文件返回路径而非内联
+        if len(b64) > 200 * 1024:
+            import tempfile
+            import os
+            tmp_dir = os.path.join(tempfile.gettempdir(), "my-agent-screenshots")
+            os.makedirs(tmp_dir, exist_ok=True)
+            ts = int(time.time() * 1000)
+            fpath = os.path.join(tmp_dir, f"screenshot_{ts}.jpg")
+            with open(fpath, "wb") as f:
+                f.write(raw_bytes)
+            result_info["saved_to"] = fpath
+            result_info["base64_size"] = len(b64)
+            result_info["base64"] = b64[:200] + "...(已截断，完整图片保存在文件)"
+            result_info["hint"] = "图片过大，已保存到文件。使用 saved_to 路径读取。"
+        else:
+            result_info["base64"] = b64
+
         return json.dumps(result_info, ensure_ascii=False)
     except Exception as e:
         return json.dumps({"error": f"截图失败: {str(e)}"})
