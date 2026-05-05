@@ -254,6 +254,9 @@ body{font-family:'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,sans-se
     </div>
     <div class="header-center">
       <button class="tab-btn active" onclick="switchTab('chat',this)">💬 对话</button>
+      <button class="tab-btn" onclick="switchTab('tools',this)">🔧 工具</button>
+      <button class="tab-btn" onclick="switchTab('skills',this)">🎯 技能</button>
+      <button class="tab-btn" onclick="switchTab('memory',this)">🧠 记忆</button>
       <button class="tab-btn" onclick="switchTab('about',this)">ℹ️ 关于</button>
     </div>
     <div class="header-right">
@@ -385,6 +388,76 @@ body{font-family:'Inter','Noto Sans SC',-apple-system,BlinkMacSystemFont,sans-se
     <div class="model-sheet-handle"></div>
     <div class="model-sheet-title">选择模型</div>
     <div id="modelSheetList"></div>
+  </div>
+</div>
+
+<!-- ═══════ TOOLS PAGE ═══════ -->
+<div id="toolsPage" style="display:none;position:fixed;inset:0;z-index:50;background:var(--bg-primary);overflow-y:auto">
+  <div style="max-width:900px;margin:0 auto;padding:40px 32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div>
+        <h1 style="font-size:1.5rem;font-weight:700;letter-spacing:-.02em">🔧 工具管理</h1>
+        <p style="font-size:.82rem;color:var(--text-secondary);margin-top:4px" id="toolsStats">加载中...</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" class="config-input" id="toolsSearchInput" placeholder="🔍 搜索工具..." style="width:200px" oninput="searchTools(this.value)">
+        <button class="btn-ghost" onclick="autoConfigureTools()">🪄 一键自动</button>
+        <button class="hint-chip" onclick="switchTab('chat',document.querySelector('.tab-btn'))" style="font-size:.78rem;padding:6px 14px">← 返回</button>
+      </div>
+    </div>
+    <div id="toolsCategoryList"></div>
+  </div>
+</div>
+
+<!-- ═══════ SKILLS PAGE ═══════ -->
+<div id="skillsPage" style="display:none;position:fixed;inset:0;z-index:50;background:var(--bg-primary);overflow-y:auto">
+  <div style="max-width:900px;margin:0 auto;padding:40px 32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div>
+        <h1 style="font-size:1.5rem;font-weight:700;letter-spacing:-.02em">🎯 技能管理</h1>
+        <p style="font-size:.82rem;color:var(--text-secondary);margin-top:4px" id="skillsStats">加载中...</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-ghost" onclick="showCreateSkill()">➕ 新建技能</button>
+        <button class="hint-chip" onclick="switchTab('chat',document.querySelector('.tab-btn'))" style="font-size:.78rem;padding:6px 14px">← 返回</button>
+      </div>
+    </div>
+    <div id="createSkillForm" style="display:none;margin-bottom:20px;padding:16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:12px">
+      <div style="display:flex;gap:8px;align-items:end">
+        <div style="flex:1"><div class="config-label">技能名称</div><input type="text" class="config-input" id="newSkillName" placeholder="my-skill"></div>
+        <div style="flex:2"><div class="config-label">描述</div><input type="text" class="config-input" id="newSkillDesc" placeholder="技能用途"></div>
+        <button class="btn-save" style="width:auto;padding:7px 20px" onclick="createSkill()">创建</button>
+        <button class="btn-ghost" onclick="hideCreateSkill()">取消</button>
+      </div>
+    </div>
+    <div id="skillsList"></div>
+  </div>
+</div>
+
+<!-- ═══════ MEMORY PAGE ═══════ -->
+<div id="memoryPage" style="display:none;position:fixed;inset:0;z-index:50;background:var(--bg-primary);overflow-y:auto">
+  <div style="max-width:900px;margin:0 auto;padding:40px 32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+      <div>
+        <h1 style="font-size:1.5rem;font-weight:700;letter-spacing:-.02em">🧠 记忆管理</h1>
+        <p style="font-size:.82rem;color:var(--text-secondary);margin-top:4px" id="memoryStats">加载中...</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="text" class="config-input" id="memorySearchInput" placeholder="🔍 搜索记忆..." style="width:250px" oninput="searchMemory(this.value)">
+        <button class="hint-chip" onclick="switchTab('chat',document.querySelector('.tab-btn'))" style="font-size:.78rem;padding:6px 14px">← 返回</button>
+      </div>
+    </div>
+    <div id="memorySearchResults" style="display:none;margin-bottom:20px"></div>
+    <div id="memoryLongTerm" class="stat-card" style="margin-bottom:16px;cursor:pointer" onclick="toggleLongTermMemory()">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:.88rem;font-weight:600">📋 MEMORY.md（长期记忆）</div>
+          <div style="font-size:.72rem;color:var(--text-tertiary);margin-top:2px">点击查看</div>
+        </div>
+      </div>
+      <div id="longTermContent" style="display:none;margin-top:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;font-size:.82rem;line-height:1.6;white-space:pre-wrap;max-height:400px;overflow-y:auto"></div>
+    </div>
+    <div id="memoryDailyList"></div>
   </div>
 </div>
 
@@ -548,7 +621,7 @@ document.addEventListener('click',e=>{if(!e.target.closest('.dropdown-anchor'))c
 // ═══════════════════════════════════════════════════
 // TABS
 // ═══════════════════════════════════════════════════
-function switchTab(tab,btn){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(tab==='about'){document.getElementById('aboutPage').style.display='block';document.querySelector('.app').style.display='none'}}
+function switchTab(tab,btn){document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(tab==='chat'){document.querySelector('.app').style.display='grid';document.getElementById('aboutPage').style.display='none';document.getElementById('toolsPage').style.display='none';document.getElementById('skillsPage').style.display='none';document.getElementById('memoryPage').style.display='none'}else if(tab==='about'){document.getElementById('aboutPage').style.display='block';document.querySelector('.app').style.display='none'}else if(tab==='tools'){document.querySelector('.app').style.display='none';document.getElementById('aboutPage').style.display='none';document.getElementById('toolsPage').style.display='block';document.getElementById('skillsPage').style.display='none';document.getElementById('memoryPage').style.display='none';loadToolsPage()}else if(tab==='skills'){document.querySelector('.app').style.display='none';document.getElementById('aboutPage').style.display='none';document.getElementById('toolsPage').style.display='none';document.getElementById('skillsPage').style.display='block';document.getElementById('memoryPage').style.display='none';loadSkillsPage()}else if(tab==='memory'){document.querySelector('.app').style.display='none';document.getElementById('aboutPage').style.display='none';document.getElementById('toolsPage').style.display='none';document.getElementById('skillsPage').style.display='none';document.getElementById('memoryPage').style.display='block';loadMemoryPage()}}
 
 // ═══════════════════════════════════════════════════
 // INPUT
@@ -649,7 +722,14 @@ function addLog(icon,text){const panel=document.getElementById('logPanel');const
 // SIDEBAR
 // ═══════════════════════════════════════════════════
 async function loadSidebar(){
-  try{const resp=await fetch('/api/status');if(resp.ok){const d=await resp.json();renderTools(d.tools||[]);renderSkills(d.skills||[]);return}}catch(e){}
+  try{const resp=await fetch('/api/status');if(resp.ok){const d=await resp.json();
+    // 新 API 格式：tools 是分类对象，skills 是数组
+    if(d.tools&&typeof d.tools==='object'&&!Array.isArray(d.tools)){
+      const allTools=Object.values(d.tools).flat();
+      renderTools(allTools.map(t=>({name:t.name,desc:t.description||'',icon:{file:'📂',search:'🔍',web:'🌐',browser:'🧭',desktop:'🖥️',system:'💻',memory:'🧠',security:'🔒',other:'🔧'}[(t.category||'other').toLowerCase()]||'🔧'})));
+    }else{renderTools(d.tools||[])}
+    renderSkills((d.skills||[]).map(s=>({name:s.name,goal:s.goal||s.preview||'',icon:'🎯'})));
+    return}}catch(e){}
   renderTools([{name:'scan_files',desc:'扫描目录文件',icon:'📂'},{name:'find_files',desc:'搜索文件',icon:'🔍'},{name:'move_file',desc:'移动文件',icon:'📁'},{name:'read_file',desc:'读取文件',icon:'📄'},{name:'write_file',desc:'写入文件',icon:'✏️'},{name:'organize_directory',desc:'整理目录',icon:'🗂️'},{name:'rollback_operation',desc:'回滚操作',icon:'↩️'},{name:'web_search',desc:'网络搜索',icon:'🌐'},{name:'browser_navigate',desc:'打开网页',icon:'🧭'},{name:'browser_screenshot',desc:'网页截图',icon:'📸'},{name:'desktop_screenshot',desc:'桌面截图',icon:'🖥️'},{name:'desktop_click',desc:'桌面点击',icon:'🖱️'},{name:'desktop_type',desc:'桌面打字',icon:'⌨️'},{name:'run_command',desc:'执行命令',icon:'💻'},{name:'recall',desc:'记忆检索',icon:'🧠'}]);
   renderSkills([{name:'desktop-organize',goal:'桌面文件整理',icon:'📂'},{name:'file-search',goal:'文件搜索',icon:'🔍'},{name:'web-research',goal:'网络研究',icon:'🌐'}]);
 }
@@ -663,6 +743,170 @@ function setStatus(type,text){document.getElementById('statusDot').style.backgro
 function escapeHtml(s){if(!s)return'';const d=document.createElement('div');d.textContent=s;return d.innerHTML}
 function formatResponse(t){if(!t)return'';return escapeHtml(t).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/`([^`]+)`/g,'<code style="background:var(--bg-tertiary);padding:1px 5px;border-radius:4px;font-size:.82em;font-family:SF Mono,Fira Code,monospace">$1</code>').replace(/(https?:\/\/[^\s<]+)/g,'<a href="$1" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">$1</a>').replace(/\n/g,'<br>')}
 function clearChat(){document.getElementById('chatArea').innerHTML=`<div class="welcome" id="welcomeState"><div class="welcome-icon">🤖</div><h2>你好，我是 My Agent</h2><p>你的个人元操作系统智能体。<br>一句话，我来操控你的电脑。</p><div class="welcome-hints"><div class="hint-chip" onclick="quickAsk('帮我整理一下桌面文件')">📂 整理桌面</div><div class="hint-chip" onclick="quickAsk('搜索一下最近AI领域有什么最新进展')">🔍 AI研究</div><div class="hint-chip" onclick="quickAsk('帮我截个图看看当前屏幕')">📸 截图分析</div><div class="hint-chip" onclick="quickAsk('找一下电脑里的PDF文件')">📄 搜索文件</div><div class="hint-chip" onclick="quickAsk('帮我打开GitHub')">🌐 浏览网页</div><div class="hint-chip" onclick="quickAsk('查看当前已加载的技能列表')">📋 技能列表</div></div></div>`;state.messages=[];state.totalRounds=0;state.totalTools=0;state.totalTokens=0;state.totalCost=0;updateStats();document.getElementById('logPanel').innerHTML=`<div class="log-entry"><span class="log-icon">💤</span><span class="log-text">等待你的第一条指令...</span></div>`}
+
+// ═══════════════════════════════════════════════════
+// TOOLS PAGE
+// ═══════════════════════════════════════════════════
+async function loadToolsPage(){
+  try{
+    const resp=await fetch('/api/tools');const data=await resp.json();
+    if(!data.success)return;
+    const allTools=Object.values(data.categories).flat();
+    const available=allTools.filter(t=>t.enabled).length;
+    document.getElementById('toolsStats').textContent=`${available}/${allTools.length} 可用 · ${allTools.length} 个工具`;
+    renderToolsCategories(data.categories);
+  }catch(e){
+    document.getElementById('toolsCategoryList').innerHTML='<p style="color:var(--text-tertiary)">⚠️ 无法加载工具列表，请确认 Flask 后端已启动</p>';
+  }
+}
+
+function renderToolsCategories(categories){
+  const c=document.getElementById('toolsCategoryList');
+  c.innerHTML=Object.entries(categories).map(([cat,tools])=>`
+    <div style="margin-bottom:20px">
+      <div style="font-size:.82rem;font-weight:600;color:var(--text-secondary);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">📁 ${cat} (${tools.length})</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">${tools.map(t=>renderToolCard(t)).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function renderToolCard(tool){
+  const riskColors={low:'var(--success)',medium:'var(--warning)',high:'var(--danger)'};
+  const riskLabels={low:'低',medium:'中',high:'高'};
+  const rc=riskColors[tool.risk_level]||'var(--text-tertiary)';
+  const om=tool.manually_overridden?' ⚡':'';
+  return `<div class="stat-card" style="display:flex;align-items:center;gap:12px;padding:12px">
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:.82rem;font-weight:600;font-family:'SF Mono','Fira Code',monospace">${tool.name}</span>${om}
+        <span style="font-size:.6rem;padding:1px 6px;border-radius:9999px;background:${rc}20;color:${rc};font-weight:600">${riskLabels[tool.risk_level]||'?'}</span>
+      </div>
+      <div style="font-size:.72rem;color:var(--text-tertiary);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${tool.description||''}</div>
+    </div>
+    <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer">
+      <input type="checkbox" ${tool.enabled?'checked':''} onchange="toggleTool('${tool.name}',this.checked)" style="opacity:0;width:0;height:0">
+      <span style="position:absolute;inset:0;background:${tool.enabled?'var(--accent)':'var(--bg-tertiary)'};border-radius:12px;transition:.3s;border:1px solid var(--border)"></span>
+      <span style="position:absolute;top:2px;left:${tool.enabled?'22px':'2px'};width:20px;height:20px;background:white;border-radius:50%;transition:.3s;box-shadow:var(--shadow-sm)"></span>
+    </label>
+  </div>`;
+}
+
+async function toggleTool(name,enabled){
+  try{const resp=await fetch(`/api/tools/${name}/toggle`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled})});const data=await resp.json();if(data.success)loadToolsPage()}catch(e){console.error('切换工具失败:',e)}
+}
+
+async function searchTools(keyword){
+  if(!keyword.trim()){loadToolsPage();return}
+  try{const resp=await fetch(`/api/tools/search?q=${encodeURIComponent(keyword)}`);const data=await resp.json();
+    if(data.success){const c=document.getElementById('toolsCategoryList');c.innerHTML=`<div style="font-size:.82rem;color:var(--text-tertiary);margin-bottom:12px">搜索 "${keyword}" — ${data.count} 个结果</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px">${data.tools.map(t=>renderToolCard(t)).join('')}</div>`}
+  }catch(e){}
+}
+
+async function autoConfigureTools(){
+  try{const resp=await fetch('/api/tools/auto-configure',{method:'POST'});const data=await resp.json();
+    if(data.success&&data.suggest_disable.length>0){for(const name of data.suggest_disable){await fetch(`/api/tools/${name}/toggle`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:false})})}loadToolsPage()}
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════════════
+// SKILLS PAGE
+// ═══════════════════════════════════════════════════
+async function loadSkillsPage(){
+  try{const resp=await fetch('/api/skills');const data=await resp.json();
+    if(!data.success)return;
+    document.getElementById('skillsStats').textContent=`${data.count} 个技能`;
+    const c=document.getElementById('skillsList');
+    c.innerHTML=data.skills.map(skill=>`
+      <div class="stat-card" style="margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div style="font-size:.88rem;font-weight:600">📄 ${skill.name}</div>
+            <div style="font-size:.75rem;color:var(--text-tertiary);margin-top:2px">${skill.preview||''}</div>
+            <div style="font-size:.65rem;color:var(--text-tertiary);margin-top:4px">${(skill.size/1024).toFixed(1)}KB · ${new Date(skill.modified*1000).toLocaleDateString()}</div>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button class="btn-ghost" onclick="viewSkill('${skill.name}')">👁️ 查看</button>
+            <button class="btn-ghost" style="color:var(--danger);border-color:var(--danger)" onclick="deleteSkill('${skill.name}')">🗑️ 删除</button>
+          </div>
+        </div>
+        <div id="skillContent_${skill.name}" style="display:none;margin-top:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;font-size:.82rem;line-height:1.6;white-space:pre-wrap;max-height:400px;overflow-y:auto"></div>
+      </div>
+    `).join('');
+  }catch(e){document.getElementById('skillsList').innerHTML='<p style="color:var(--text-tertiary)">⚠️ 无法加载技能列表</p>'}
+}
+
+async function viewSkill(name){
+  const el=document.getElementById(`skillContent_${name}`);
+  if(el.style.display==='none'){try{const resp=await fetch(`/api/skills/${name}`);const data=await resp.json();if(data.success){el.textContent=data.content;el.style.display='block'}}catch(e){}}else{el.style.display='none'}
+}
+
+function showCreateSkill(){document.getElementById('createSkillForm').style.display='block'}
+function hideCreateSkill(){document.getElementById('createSkillForm').style.display='none'}
+
+async function createSkill(){
+  const name=document.getElementById('newSkillName').value.trim();const desc=document.getElementById('newSkillDesc').value.trim();
+  if(!name)return;
+  try{const resp=await fetch('/api/skills',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,description:desc})});const data=await resp.json();if(data.success){hideCreateSkill();loadSkillsPage()}}catch(e){}
+}
+
+async function deleteSkill(name){
+  if(!confirm(`确定删除技能 ${name}？`))return;
+  try{const resp=await fetch(`/api/skills/${name}`,{method:'DELETE'});const data=await resp.json();if(data.success)loadSkillsPage()}catch(e){}
+}
+
+// ═══════════════════════════════════════════════════
+// MEMORY PAGE
+// ═══════════════════════════════════════════════════
+async function loadMemoryPage(){
+  try{
+    const statsResp=await fetch('/api/memory/stats');const stats=await statsResp.json();
+    if(stats.success){document.getElementById('memoryStats').textContent=`${stats.daily_count} 条日记忆 · ${(stats.total_size/1024).toFixed(1)}KB`}
+    const resp=await fetch('/api/memory');const data=await resp.json();
+    if(data.success){
+      const c=document.getElementById('memoryDailyList');
+      c.innerHTML=data.memories.map(mem=>`
+        <div class="stat-card" style="margin-bottom:8px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:.88rem;font-weight:600">📝 ${mem.name}</div>
+              <div style="font-size:.72rem;color:var(--text-tertiary);margin-top:2px">${mem.preview||''}</div>
+              <div style="font-size:.65rem;color:var(--text-tertiary);margin-top:4px">${(mem.size/1024).toFixed(1)}KB</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn-ghost" onclick="viewMemory('${mem.name}')">👁️ 查看</button>
+              <button class="btn-ghost" style="color:var(--danger);border-color:var(--danger)" onclick="deleteMemory('${mem.name}')">🗑️</button>
+            </div>
+          </div>
+          <div id="memContent_${mem.name}" style="display:none;margin-top:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;font-size:.82rem;line-height:1.6;white-space:pre-wrap;max-height:400px;overflow-y:auto"></div>
+        </div>
+      `).join('');
+    }
+  }catch(e){document.getElementById('memoryDailyList').innerHTML='<p style="color:var(--text-tertiary)">⚠️ 无法加载记忆列表</p>'}
+}
+
+async function toggleLongTermMemory(){
+  const el=document.getElementById('longTermContent');
+  if(el.style.display==='none'){try{const resp=await fetch('/api/memory/MEMORY.md');const data=await resp.json();if(data.success){el.textContent=data.content;el.style.display='block'}}catch(e){}}else{el.style.display='none'}
+}
+
+async function viewMemory(filename){
+  const el=document.getElementById(`memContent_${filename}`);
+  if(el.style.display==='none'){try{const resp=await fetch(`/api/memory/${filename}`);const data=await resp.json();if(data.success){el.textContent=data.content;el.style.display='block'}}catch(e){}}else{el.style.display='none'}
+}
+
+async function deleteMemory(filename){
+  if(!confirm(`确定删除记忆文件 ${filename}？`))return;
+  try{const resp=await fetch(`/api/memory/${filename}`,{method:'DELETE'});const data=await resp.json();if(data.success)loadMemoryPage()}catch(e){}
+}
+
+async function searchMemory(keyword){
+  const r=document.getElementById('memorySearchResults');
+  if(!keyword.trim()){r.style.display='none';return}
+  try{const resp=await fetch(`/api/memory/search?q=${encodeURIComponent(keyword)}`);const data=await resp.json();
+    if(data.success&&data.results.length>0){r.style.display='block';r.innerHTML=`<div style="font-size:.82rem;color:var(--text-tertiary);margin-bottom:8px">搜索 "${keyword}" — ${data.file_count} 个文件匹配</div>${data.results.map(res=>`<div class="stat-card" style="margin-bottom:6px"><div style="font-size:.82rem;font-weight:600">📄 ${res.name} (${res.match_count} 处匹配)</div>${res.matches.map(m=>`<div style="font-size:.72rem;color:var(--text-tertiary);margin-top:2px;padding-left:12px">行 ${m.line}: ${escapeHtml(m.text)}</div>`).join('')}</div>`).join('')}`}
+    else{r.style.display='block';r.innerHTML='<div style="font-size:.82rem;color:var(--text-tertiary)">未找到匹配内容</div>'}
+  }catch(e){}
+}
 
 // ═══════════════════════════════════════════════════
 // INIT

@@ -49,30 +49,24 @@ def index():
 def api_status():
     """获取 Agent 状态"""
     init_agent()
-    tools_list = []
-    if _registry:
-        for td in _registry.get_available():
-            tools_list.append({
-                'name': td.name,
-                'desc': td.description[:60],
-                'category': td.category,
-            })
+    from manage.tool_manager import ToolManager
+    from manage.skill_manager import SkillManager
+    from manage.memory_manager import MemoryManager
 
-    skills_list = []
-    for s in _skills:
-        skills_list.append({
-            'name': s.name,
-            'goal': s.goal[:60],
-            'tools': s.tools,
-            'steps': len(s.steps),
-        })
+    tool_mgr = ToolManager(_registry)
+    skill_mgr = SkillManager()
+    mem_mgr = MemoryManager()
+
+    tools_data = tool_mgr.list_by_category()
+    skills_data = skill_mgr.list_skills()
+    mem_stats = mem_mgr.get_stats()
 
     return jsonify({
         'status': 'ok',
-        'tools': tools_list,
-        'skills': skills_list,
-        'tool_count': len(tools_list),
-        'skill_count': len(skills_list),
+        'tools': tools_data.get('categories', {}),
+        'tool_stats': tool_mgr.get_stats(),
+        'skills': skills_data.get('skills', []),
+        'memory_stats': mem_stats,
     })
 
 
@@ -134,6 +128,131 @@ def api_chat():
 @app.route('/api/health')
 def health():
     return jsonify({'status': 'ok', 'time': datetime.datetime.now().isoformat()})
+
+
+# ═══════════════════════════════════════════════════
+# 工具管理 API
+# ═══════════════════════════════════════════════════
+
+@app.route('/api/tools')
+def api_tools_list():
+    """列出所有工具（按分类分组）"""
+    init_agent()
+    from manage.tool_manager import ToolManager
+    mgr = ToolManager(_registry)
+    return jsonify(mgr.list_by_category())
+
+
+@app.route('/api/tools/search')
+def api_tools_search():
+    """搜索工具"""
+    keyword = request.args.get('q', '')
+    init_agent()
+    from manage.tool_manager import ToolManager
+    mgr = ToolManager(_registry)
+    return jsonify(mgr.search(keyword))
+
+
+@app.route('/api/tools/<name>/toggle', methods=['POST'])
+def api_tools_toggle(name):
+    """启用/禁用工具"""
+    init_agent()
+    data = request.get_json(force=True)
+    enabled = data.get('enabled', True)
+    from manage.tool_manager import ToolManager
+    mgr = ToolManager(_registry)
+    return jsonify(mgr.toggle(name, enabled))
+
+
+@app.route('/api/tools/auto-configure', methods=['POST'])
+def api_tools_auto():
+    """一键自动配置"""
+    init_agent()
+    from manage.tool_manager import ToolManager
+    mgr = ToolManager(_registry)
+    return jsonify(mgr.auto_configure())
+
+
+# ═══════════════════════════════════════════════════
+# 技能管理 API
+# ═══════════════════════════════════════════════════
+
+@app.route('/api/skills')
+def api_skills_list():
+    """列出所有技能"""
+    from manage.skill_manager import SkillManager
+    mgr = SkillManager()
+    return jsonify(mgr.list_skills())
+
+
+@app.route('/api/skills/<name>')
+def api_skills_read(name):
+    """读取技能内容"""
+    from manage.skill_manager import SkillManager
+    mgr = SkillManager()
+    return jsonify(mgr.read_skill(name))
+
+
+@app.route('/api/skills', methods=['POST'])
+def api_skills_create():
+    """创建新技能"""
+    data = request.get_json(force=True)
+    from manage.skill_manager import SkillManager
+    mgr = SkillManager()
+    return jsonify(mgr.create_skill(data.get('name', ''), data.get('description', '')))
+
+
+@app.route('/api/skills/<name>', methods=['DELETE'])
+def api_skills_delete(name):
+    """删除技能"""
+    from manage.skill_manager import SkillManager
+    mgr = SkillManager()
+    return jsonify(mgr.delete_skill(name, confirm=True))
+
+
+# ═══════════════════════════════════════════════════
+# 记忆管理 API
+# ═══════════════════════════════════════════════════
+
+@app.route('/api/memory')
+def api_memory_list():
+    """列出所有记忆"""
+    from manage.memory_manager import MemoryManager
+    mgr = MemoryManager()
+    return jsonify(mgr.list_daily_memories())
+
+
+@app.route('/api/memory/search')
+def api_memory_search():
+    """搜索记忆"""
+    keyword = request.args.get('q', '')
+    from manage.memory_manager import MemoryManager
+    mgr = MemoryManager()
+    return jsonify(mgr.search_memories(keyword))
+
+
+@app.route('/api/memory/stats')
+def api_memory_stats():
+    """记忆统计"""
+    from manage.memory_manager import MemoryManager
+    mgr = MemoryManager()
+    return jsonify(mgr.get_stats())
+
+
+@app.route('/api/memory/<filename>')
+def api_memory_read(filename):
+    """读取记忆内容"""
+    from manage.memory_manager import MemoryManager
+    mgr = MemoryManager()
+    return jsonify(mgr.read_memory(filename))
+
+
+@app.route('/api/memory/<filename>', methods=['DELETE'])
+def api_memory_delete(filename):
+    """删除记忆"""
+    from manage.memory_manager import MemoryManager
+    mgr = MemoryManager()
+    return jsonify(mgr.delete_memory(filename, confirm=True))
 
 
 if __name__ == '__main__':
