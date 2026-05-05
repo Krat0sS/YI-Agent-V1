@@ -1,7 +1,7 @@
 # MEMORY.md — 易Agent 专属长期记忆
 
-> 最后更新：2026-05-05 15:32 CST
-> 会话次数：7 次（本次为第 7 次）
+> 最后更新：2026-05-05 16:17 CST
+> 会话次数：8 次（本次为第 8 次）
 
 ---
 
@@ -73,9 +73,9 @@
 
 ### 仓库信息
 - 仓库：https://github.com/Krat0sS/YI-Agent-V1
-- 当前版本：v1.4（大衍筮法 + 子Agent框架 + 路由进化）
+- 当前版本：v1.5.0（安全硬内核 + UI 管理层 + HTML 界面优化 + 全面修复）
 - 当前分支：`discipline-first`
-- 最新 commit：`f5d43a1`（HTML 界面优化计划）
+- 最新 commit：`83f3059`（全面 Bug 修复）
 
 ### 技术栈
 - 语言：Python 3.12/3.13/3.14
@@ -83,81 +83,45 @@
 - 数据库：SQLite（execution_log.db）
 - Web UI：Flask（API 后端）+ Streamlit（管理界面）+ 纯 HTML（独立前端）
 
-### 核心文件结构
-```
-YI-Agent-V1/
-├── security/
-│   ├── __init__.py
-│   ├── context_sanitizer.py  (98行, 标签包裹+正则注入检测)
-│   ├── filesystem_guard.py   (270行, Phase 1 新增, 四层安全守卫)
-│   └── command_whitelist.yaml (Phase 1 新增, 命令白名单)
-├── manage/                     (UI 管理层, 本次新增)
-│   ├── __init__.py
-│   ├── tool_manager.py       (工具启用/禁用/搜索/分类)
-│   ├── skill_manager.py      (技能增删改查)
-│   └── memory_manager.py     (记忆查看/搜索/删除)
-├── tools/
-│   ├── registry.py           (工具注册表, 已加 enable/disable)
-│   ├── builtin.py            (40个工具, 已接入安全拦截)
-│   ├── rollback.py           (406行, 操作组回滚+磁盘持久化)
-│   └── ...
-├── core/
-│   ├── conversation.py       (主循环, 已加 GUI 确认门控)
-│   └── ...
-├── memory/
-│   └── memory_system.py      (280行, 关键词匹配+截断)
-├── tests/
-│   ├── test_filesystem_guard.py (18 个安全测试)
-│   └── test_managers.py      (28 个管理器测试)
-├── app.py                     (Streamlit 界面, 已加管理 Tab)
-├── index.html                 (HTML 界面, 待优化)
-├── main.py                    (Flask 入口)
-├── config.py                  (已加安全配置项)
-├── CHANGELOG-v1.5.0.md
-├── SECURITY-GUIDE.md
-└── HTML优化.md                 (HTML 界面优化执行计划)
-```
-
 ---
 
-## 2026-05-05 本次会话成果（第 7 次会话）
+## 2026-05-05 本次会话成果（第 8 次会话）
 
-### 时间：14:40 - 15:32，约 52 分钟
+### 时间：15:48 - 16:17，约 29 分钟
 
 ### 做了什么
 
-#### 1. 记忆恢复（14:40）
-- 用户上传记忆包（4 个文件）
-- 恢复完整上下文：项目状态、执行计划、历史决策
+#### 1. 记忆恢复（15:48）
+- 用户上传 4 个记忆文件 + 1 个验证项目对话记录
+- 恢复完整上下文
 
-#### 2. Phase 1 安全硬内核（14:41 - 14:59）
-- `git clone` GitHub TLS 不稳，改用 `curl + tarball` 下载
-- 创建 `security/command_whitelist.yaml` — 命令白名单配置
-- 创建 `security/filesystem_guard.py` — 四层安全守卫（路径/命令/频率/GUI）
-- 创建 `tests/test_filesystem_guard.py` — 17 个测试
-- 修改 `tools/builtin.py` — execute() 接入安全拦截
-- 修改 `core/conversation.py` — GUI 操作确认门控
-- 修改 `config.py` — 安全配置项
-- 用户 code review 发现 `${}` 漏了 → 补全 + 1 个新测试 → 18 passed
-- 3 次 commit 推到 GitHub
+#### 2. HTML 界面优化（15:51 - 16:01）
+- server.py 新增 12 个 API 端点（工具/技能/记忆管理）
+- /api/status 增强版
+- index.html 新增 Tab 导航 + 3 个管理页 + JS 逻辑
+- commit `84ed2c2`
 
-#### 3. 界面管理层（15:10 - 15:20）
-- 给 `ToolDefinition` 加 `enable()/disable()/reset_manual()` 方法
-- 创建 `manage/tool_manager.py` — 工具管理器
-- 创建 `manage/skill_manager.py` — 技能管理器
-- 创建 `manage/memory_manager.py` — 记忆管理器
-- 创建 `tests/test_managers.py` — 28 个测试
-- 修改 `app.py` — 侧边栏加 💬🧠🎯🔧 四 Tab 管理页
-- 46 passed，推到 GitHub
+#### 3. 全面 Bug 修复（16:04 - 16:17）
+- 基于之前会话的 25 项诊断清单
+- 修复 8 项关键/高危问题：
+  - #4 on_confirm 回调（conversation.py）
+  - #5 记忆检索（memory_system.py）
+  - #12 中文截断（memory_system.py）
+  - #13 LLM 重试（llm.py）
+  - #14 .gitignore
+  - #16 截图超长（desktop.py）
+  - #17 watchdog（requirements.txt）
+  - #18 SubAgent 递归（sub_agent.py）
+- commit `83f3059`
 
-#### 4. HTML 界面优化计划（15:23 - 15:26）
-- 用户问 HTML 界面是否也更新了 → 没有
-- 创建 `HTML优化.md` — 772 行详细执行计划
-- 6 个步骤：Flask API + 前端 3 个管理页
-- 推到 GitHub
+#### 4. 一键启动 start.bat 重写
+- 自动检测 Python、自动 venv、清华镜像、界面选择
 
 ### Git 提交记录（discipline-first 分支）
 ```
+83f3059 fix: 全面修复诊断清单 — 8 项关键/高危问题
+84ed2c2 feat(ui): HTML 界面优化 — 工具/技能/记忆管理页
+fca9c1f chore: 更新记忆文件 + 记忆包说明
 f5d43a1 docs: HTML 界面优化执行计划
 2b4eec8 feat(ui): 管理层 + 侧边栏管理 Tab
 8b5bc93 fix(security): 补全 ${} 变量展开拦截 + 测试用例
@@ -165,10 +129,9 @@ c5db59c docs: Phase 1 更新日志和安全操作说明
 0ba70b9 feat(security): Phase 1 安全硬内核
 ```
 
-### 测试结果
-- Phase 1 安全测试：18 passed
-- 管理器测试：28 passed
-- 总计：**46 passed**
+### 25 项诊断修复率
+- ✅ 无问题或已修：17 项
+- ⚠️ 低风险架构债务：8 项
 
 ---
 
@@ -182,17 +145,8 @@ c5db59c docs: Phase 1 更新日志和安全操作说明
 | 4 向量检索 | ⏳ 待做 | fastembed + sqlite-vec |
 | 5 MCP Server | ⏳ 待做 | 有状态会话 + 协议冻结 |
 | UI 管理层 | ✅ 完成 | manage/ 三层 + Streamlit 四 Tab |
-| HTML 优化 | 📋 计划就绪 | HTML优化.md，待执行 |
-
----
-
-## 待完成（按优先级）
-
-1. **HTML 界面优化** — 按 `HTML优化.md` 执行（Flask API + 前端管理页）
-2. **Phase 2: 工具插件化** — 40 工具拆分 + TOCTOU 安全加载
-3. **Phase 3: 回滚事务化** — ACID 状态机
-4. **Phase 4: 向量记忆检索** — embedding 选型 + sqlite-vec
-5. **Phase 5: MCP Server** — 文件交互标准
+| HTML 优化 | ✅ 完成 | Flask API + 前端 3 管理页 |
+| Bug 修复 | ✅ 完成 | 17/25 已解决 |
 
 ---
 
@@ -200,12 +154,14 @@ c5db59c docs: Phase 1 更新日志和安全操作说明
 
 ### 技术教训
 1. **代码验证是最终裁判** — 老师的理论分析再漂亮，也得跑一遍代码验证
-2. **GitHub TLS 不稳** — 服务器推代码经常断，用 curl + tarball 下载更稳
+2. **GitHub TLS 不稳** — 服务器推代码经常断，需要重试
 3. **token 安全** — 用户在聊天里发过 GitHub token，用完必须撤销
-4. **目录穿越测试** — `../../../etc/passwd` 在 root 用户下 realpath 解析后仍在 `/root` 下，测试用例要用 `/tmp/../../etc/shadow`
+4. **on_confirm 必须有默认值** — 无回调时危险操作应拒绝而非静默通过
+5. **截图 base64 要控制大小** — 超过 200KB 应存文件返回路径
+6. **中文截断按行边界** — 不能按字节/字符截断，会切断多字节字符
 
 ### 协作教训
-1. **用户 code review 很仔细** — 会看 YAML 格式、变量完整性，发现 `${}` 漏了
+1. **用户 code review 很仔细** — 会看 YAML 格式、变量完整性
 2. **用户要求"详细到可以直接执行"** — 不是伪代码，是完整可运行的代码
 3. **用户时间有限** — "你我的时间快到期了" 时要快速打包记忆
 4. **用户喜欢直接开干** — 说"开干"就别废话，直接写代码
@@ -217,8 +173,8 @@ c5db59c docs: Phase 1 更新日志和安全操作说明
 ### 当前状态
 - 仓库：`/root/.openclaw/workspace/YI-Agent-V1`
 - 分支：`discipline-first`
-- 最新 commit：`f5d43a1`
-- 下一步：按 `HTML优化.md` 执行 HTML 界面优化
+- 最新 commit：`83f3059`
+- 下一步：Phase 2 工具插件化 / 三入口统一 / 剩余架构债务
 
 ### 用户的工作流
 1. 用户在 Windows 本地开发（F:\MyAgent\YI-Agent-V1）
@@ -229,5 +185,5 @@ c5db59c docs: Phase 1 更新日志和安全操作说明
 
 ### ⚠️ 重要提醒
 - GitHub TLS 不稳定，push 时可能需要重试
-- 用户的 Git 配置可能需要设置 user.email 和 user.name
 - 用户喜欢用 Streamlit 看效果，HTML 界面是补充
+- `启动.bat` 已有完整的镜像+venv+启动逻辑，`start.bat` 新增了模式选择
