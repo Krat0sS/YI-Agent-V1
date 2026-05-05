@@ -105,6 +105,11 @@ class TestCommandSafety:
         result = guard.check_command("echo $(rm -rf /)")
         assert result.safe is False
 
+    def test_command_injection_dollar_brace_blocked(self, guard):
+        """${} 变量展开注入应被拦截"""
+        result = guard.check_command("echo ${HOME}")
+        assert result.safe is False
+
     def test_unknown_command_blocked(self, guard):
         """不在白名单的命令应被拦截"""
         result = guard.check_command("curl http://evil.com")
