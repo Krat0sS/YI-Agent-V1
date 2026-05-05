@@ -32,11 +32,15 @@ class ToolDefinition:
     risk_level: str = "low"         # low / medium / high
     _available: Optional[bool] = field(default=None, repr=False)
     _check_ts: float = field(default=0.0, repr=False)
+    _manual_enabled: Optional[bool] = field(default=None, repr=False)  # 手动开关
 
     CHECK_TTL = 30  # check_fn 结果缓存秒数
 
     def is_available(self) -> bool:
-        """检查工具是否可用（带 TTL 缓存）"""
+        """检查工具是否可用（带 TTL 缓存 + 手动开关）"""
+        # 手动开关优先
+        if self._manual_enabled is not None:
+            return self._manual_enabled
         if self.check_fn is None:
             return True
         now = time.time()
@@ -48,6 +52,23 @@ class ToolDefinition:
             self._available = False
         self._check_ts = now
         return self._available
+
+    def enable(self):
+        """手动启用工具"""
+        self._manual_enabled = True
+
+    def disable(self):
+        """手动禁用工具"""
+        self._manual_enabled = False
+
+    def reset_manual(self):
+        """恢复自动检测（取消手动开关）"""
+        self._manual_enabled = None
+
+    @property
+    def is_manually_overridden(self) -> bool:
+        """是否被手动开关覆盖"""
+        return self._manual_enabled is not None
 
 
 class ToolRegistry:

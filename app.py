@@ -230,76 +230,209 @@ with st.sidebar:
     
     st.markdown("---")
     
-    st.markdown("### ⚙️ API 配置")
+    # ── 管理页面选择 ──
+    page = st.radio(
+        "导航",
+        ["💬 对话", "🧠 记忆", "🎯 技能", "🔧 工具"],
+        label_visibility="collapsed",
+        horizontal=True,
+    )
     
-    saved_key = os.getenv("LLM_API_KEY", "")
-    saved_base = os.getenv("LLM_BASE_URL", "https://api.deepseek.com")
-    saved_model = os.getenv("LLM_MODEL", "deepseek-chat")
+    st.markdown("---")
     
-    api_key = st.text_input("API Key", type="password", value=saved_key, placeholder="sk-...")
-    api_base = st.text_input("API 地址", value=saved_base)
-    
-    model_options = ["deepseek-chat", "deepseek-v4-pro", "deepseek-reasoner", "gpt-4o", "gpt-4o-mini"]
-    model_index = model_options.index(saved_model) if saved_model in model_options else 0
-    model = st.selectbox("模型", model_options, index=model_index)
-    
-    if api_key != saved_key or api_base != saved_base or model != saved_model:
-        env_path = Path(".env")
-        if not env_path.exists():
-            env_path.touch()
+    if page == "💬 对话":
+        st.markdown("### ⚙️ API 配置")
+        
+        saved_key = os.getenv("LLM_API_KEY", "")
+        saved_base = os.getenv("LLM_BASE_URL", "https://api.deepseek.com")
+        saved_model = os.getenv("LLM_MODEL", "deepseek-chat")
+        
+        api_key = st.text_input("API Key", type="password", value=saved_key, placeholder="sk-...")
+        api_base = st.text_input("API 地址", value=saved_base)
+        
+        model_options = ["deepseek-chat", "deepseek-v4-pro", "deepseek-reasoner", "gpt-4o", "gpt-4o-mini"]
+        model_index = model_options.index(saved_model) if saved_model in model_options else 0
+        model = st.selectbox("模型", model_options, index=model_index)
+        
+        if api_key != saved_key or api_base != saved_base or model != saved_model:
+            env_path = Path(".env")
+            if not env_path.exists():
+                env_path.touch()
+            if api_key:
+                set_key(str(env_path), "LLM_API_KEY", api_key)
+            set_key(str(env_path), "LLM_BASE_URL", api_base)
+            set_key(str(env_path), "LLM_MODEL", model)
+            os.environ["LLM_API_KEY"] = api_key
+            os.environ["LLM_BASE_URL"] = api_base
+            os.environ["LLM_MODEL"] = model
+        
         if api_key:
-            set_key(str(env_path), "LLM_API_KEY", api_key)
-        set_key(str(env_path), "LLM_BASE_URL", api_base)
-        set_key(str(env_path), "LLM_MODEL", model)
-        os.environ["LLM_API_KEY"] = api_key
-        os.environ["LLM_BASE_URL"] = api_base
-        os.environ["LLM_MODEL"] = model
+            st.success(f"✅ {model}")
+        else:
+            st.warning("⚠️ 请输入 API Key")
+        
+        st.markdown("---")
+        
+        if st.button("📊 执行统计", use_container_width=True):
+            try:
+                from data.execution_log import get_skill_stats, get_recent_tasks
+                ss = get_skill_stats()
+                if ss:
+                    for s in ss:
+                        rate = (s['successes'] / s['uses'] * 100) if s['uses'] > 0 else 0
+                        st.markdown(f"• {s['skill_name']}: {s['uses']}次, {rate:.0f}%")
+                rt = get_recent_tasks(3)
+                if rt:
+                    for t in rt:
+                        st.caption(f"{'✅' if t.get('success') else '❌'} {t['user_input'][:30]}")
+            except:
+                pass
     
-    if api_key:
-        st.success(f"✅ {model}")
-    else:
-        st.warning("⚠️ 请输入 API Key")
+    elif page == "🧠 记忆":
+        st.markdown("### 🧠 记忆管理")
+        from manage.memory_manager import MemoryManager
+        mem_mgr = MemoryManager()
+        
+        # 搜索
+        search_kw = st.text_input("🔍 搜索记忆", placeholder="关键词...")
+        if search_kw:
+            result = mem_mgr.search_memories(search_kw)
+            if result["success"] and result["results"]:
+                for r in result["results"]:
+                    with st.expander(f"📄 {r['name']} ({r['match_count']} 处匹配)"):
+                        for m in r["matches"]:
+                            st.caption(f"行 {m['line']}: {m['text']}")
+            else:
+                st.info("未找到匹配内容")
+        else:
+            # 列出所有记忆
+            stats = mem_mgr.get_stats()
+            if stats["success"]:
+                st.caption(f"📁 {stats['daily_count']} 条日记忆 · {stats['total_size']//1024}KB")
+            
+            # MEMORY.md
+            lt = mem_mgr.read_memory("MEMORY.md")
+            if lt["success"]:
+                with st.expander("📋 MEMORY.md（长期记忆）"):
+                    st.text_area("", lt["content"][:2000], height=150, disabled=True, key="lt_mem")
+            
+            # 每日记忆
+            daily = mem_mgr.list_daily_memories()
+            if daily["success"]:
+                for mem in daily["memories"]:
+                    col1, col2 = st.columns([4, 1])
+                    with col1:
+                        with st.expander(f"📝 {mem['name']}"):
+                            content = mem_mgr.read_memory(mem['name'])
+                            if content["success"]:
+                                st.text_area("", content["content"][:2000], height=150, disabled=True, key=f"mem_{mem['name']}")
+                    with col2:
+                        if st.button("🗑️", key=f"del_mem_{mem['name']}", help=f"删除 {mem['name']}"):
+                            st.session_state[f"confirm_del_{mem['name']}"] = True
+                            st.rerun()
+                    
+                    # 二次确认
+                    if st.session_state.get(f"confirm_del_{mem['name']}"):
+                        st.warning(f"确定删除 {mem['name']}？")
+                        c1, c2 = st.columns(2)
+                        with c1:
+                            if st.button("✅ 确认", key=f"yes_{mem['name']}"):
+                                mem_mgr.delete_memory(mem['name'], confirm=True)
+                                st.session_state.pop(f"confirm_del_{mem['name']}", None)
+                                st.success("已删除")
+                                st.rerun()
+                        with c2:
+                            if st.button("❌ 取消", key=f"no_{mem['name']}"):
+                                st.session_state.pop(f"confirm_del_{mem['name']}", None)
+                                st.rerun()
     
-    st.markdown("---")
+    elif page == "🎯 技能":
+        st.markdown("### 🎯 技能管理")
+        from manage.skill_manager import SkillManager
+        skill_mgr = SkillManager()
+        
+        # 新建技能
+        with st.expander("➕ 新建技能"):
+            new_name = st.text_input("技能名称", placeholder="my-skill")
+            new_desc = st.text_input("描述", placeholder="技能用途")
+            if st.button("创建", key="create_skill"):
+                if new_name:
+                    result = skill_mgr.create_skill(new_name, new_desc)
+                    if result["success"]:
+                        st.success(f"技能 {new_name} 已创建")
+                        st.rerun()
+                    else:
+                        st.error(result["error"])
+        
+        # 列出技能
+        result = skill_mgr.list_skills()
+        if result["success"]:
+            st.caption(f"🎯 {result['count']} 个技能")
+            for skill in result["skills"]:
+                with st.expander(f"📄 {skill['name']}"):
+                    st.caption(skill['preview'])
+                    content = skill_mgr.read_skill(skill['name'])
+                    if content["success"]:
+                        st.text_area("", content["content"][:3000], height=200, disabled=True, key=f"skill_{skill['name']}")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("🗑️ 删除", key=f"del_skill_{skill['name']}"):
+                            skill_mgr.delete_skill(skill['name'], confirm=True)
+                            st.success("已删除")
+                            st.rerun()
     
-    st.markdown("### 🔧 工具")
-    if registry:
-        categories = registry.list_by_category()
-        for category, tool_list in categories.items():
-            with st.expander(f"📁 {category} ({len(tool_list)})", expanded=False):
-                for tool_name in tool_list:
-                    td = registry.get(tool_name)
-                    if td:
-                        avail = "🟢" if td.is_available() else "⚪"
-                        desc = td.description[:45] + "..." if len(td.description) > 45 else td.description
-                        st.markdown(f"{avail} `{tool_name}` — {desc}")
-        st.caption(f"{registry.available_count()}/{registry.count()} 可用")
-    
-    st.markdown("---")
-    
-    st.markdown("### 🎯 技能")
-    if skills:
-        for skill in skills:
-            st.markdown(f"• **{skill.name}** — {skill.goal[:40]}")
-    else:
-        st.caption("暂无技能")
-    
-    st.markdown("---")
-    
-    if st.button("📊 执行统计", use_container_width=True):
-        try:
-            from data.execution_log import get_skill_stats, get_recent_tasks
-            ss = get_skill_stats()
-            if ss:
-                for s in ss:
-                    rate = (s['successes'] / s['uses'] * 100) if s['uses'] > 0 else 0
-                    st.markdown(f"• {s['skill_name']}: {s['uses']}次, {rate:.0f}%")
-            rt = get_recent_tasks(3)
-            if rt:
-                for t in rt:
-                    st.caption(f"{'✅' if t.get('success') else '❌'} {t['user_input'][:30]}")
-        except:
-            pass
+    elif page == "🔧 工具":
+        st.markdown("### 🔧 工具管理")
+        from manage.tool_manager import ToolManager
+        tool_mgr = ToolManager()
+        
+        # 搜索
+        tool_search = st.text_input("🔍 搜索工具", placeholder="工具名...")
+        if tool_search:
+            result = tool_mgr.search(tool_search)
+            if result["success"]:
+                for t in result["tools"]:
+                    risk_icon = {"low": "🟢", "medium": "🟡", "high": "🔴"}.get(t["risk_level"], "⚪")
+                    st.markdown(f"{risk_icon} `{t['name']}` — {t['description'][:40]}")
+        
+        st.markdown("---")
+        
+        # 一键自动配置
+        if st.button("🪄 一键自动配置", use_container_width=True):
+            result = tool_mgr.auto_configure()
+            if result["success"]:
+                if result["suggest_disable"]:
+                    for name in result["suggest_disable"]:
+                        tool_mgr.toggle(name, False)
+                    st.success(f"已禁用 {len(result['suggest_disable'])} 个低频高风险工具")
+                else:
+                    st.info("所有工具配置合理，无需调整")
+                st.rerun()
+        
+        # 分类列出
+        result = tool_mgr.list_by_category()
+        if result["success"]:
+            stats = tool_mgr.get_stats()
+            st.caption(f"🔧 {stats['available']}/{stats['total']} 可用 · 🔴 {stats['by_risk'].get('high', 0)} 高风险")
+            
+            for category, tools in result["categories"].items():
+                with st.expander(f"📁 {category} ({len(tools)})"):
+                    for t in tools:
+                        col1, col2 = st.columns([3, 1])
+                        with col1:
+                            risk_icon = {"low": "🟢", "medium": "🟡", "high": "🔴"}.get(t["risk_level"], "⚪")
+                            override_mark = " ⚡" if t["manually_overridden"] else ""
+                            st.markdown(f"{risk_icon} `{t['name']}`{override_mark}")
+                            st.caption(t["description"][:50])
+                        with col2:
+                            new_state = st.toggle(
+                                "启用",
+                                value=t["enabled"],
+                                key=f"tool_{t['name']}",
+                            )
+                            if new_state != t["enabled"]:
+                                tool_mgr.toggle(t["name"], new_state)
+                                st.rerun()
 
 # ── 主区域 ──
 st.markdown("## 💬 对话")
